@@ -28,5 +28,9 @@ void flag_parser(unsigned short *index, char *argv[])
 
     if (curr == "-t") {
         std::cout << "test" << std::endl;
-    } 
+    } else if (curr == "-p") { // ports
+        std::string port = argv[*index + 1];
+        std::cout << "ports: " << port << std::endl;
+        *index += 1;
+    }
 }
