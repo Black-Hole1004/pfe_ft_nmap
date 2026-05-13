@@ -68,9 +68,9 @@ bool isValidIP(const std::string& ip)
     return std::regex_match(ip, pattern);
 }
 
-std::vector<std::string> split( const std::string& str, char del)
+ std::vector<unsigned short> split( const std::string& str, char del)
 {
-    std::vector<std::string> result;
+    std::vector<unsigned short> result;
     std::stringstream ss(str);
 
     std::string item;
@@ -78,9 +78,12 @@ std::vector<std::string> split( const std::string& str, char del)
     while (std::getline(ss, item, del)) {
 
         if(is_number(item))
-         result.push_back(item);
+        {
+         unsigned short A = (unsigned short) std::stoi(item);
+         result.push_back(A);
+        }
         else
-        std::cout << "error" <<  item << "not number \n"<<std::endl;
+        std::cout << "error " <<  item << " not number \n"<<std::endl;
 
     }
 

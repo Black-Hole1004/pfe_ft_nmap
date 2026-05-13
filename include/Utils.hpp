@@ -11,7 +11,7 @@ public:
 
 bool isValidIP(const std::string& ip);
 
-std::vector<std::string> split(
+std::vector<unsigned short> split(
     const std::string& str,
     char delimiter
 );
