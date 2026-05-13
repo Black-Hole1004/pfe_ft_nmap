@@ -1,4 +1,7 @@
 #include "Utils.hpp"
+#include <regex>
+#include <sstream>
+#include <iostream>
 
 Utils::Utils()
 {
@@ -35,12 +38,18 @@ void free_IPs()
 {
 }
 
-int is_number(char *str)
+int is_number(const std::string& str)
 {
-    (void)str;
-    return 0;
-}
+    if (str.empty())
+        return 0;
 
+    for (size_t i = 0; i < str.size(); i++) {
+        if (!std::isdigit(str[i]))
+            return 0;
+    }
+
+    return 1;
+}
 void check_down()
 {
 }
@@ -49,4 +58,31 @@ int get_number(char *str)
 {
     (void)str;
     return -1;
+}
+bool isValidIP(const std::string& ip)
+{
+    std::regex pattern(
+        R"(^(\d{1,3}\.){3}\d{1,3}$)"
+    );
+
+    return std::regex_match(ip, pattern);
+}
+
+std::vector<std::string> split( const std::string& str, char del)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+
+    std::string item;
+
+    while (std::getline(ss, item, del)) {
+
+        if(is_number(item))
+         result.push_back(item);
+        else
+        std::cout << "error" <<  item << "not number \n"<<std::endl;
+
+    }
+
+    return result;
 }

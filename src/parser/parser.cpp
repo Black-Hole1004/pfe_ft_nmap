@@ -1,5 +1,9 @@
 #include "Parser.hpp"
 #include "functions.hpp"
+#include "Utils.hpp"
+
+#include <string>
+#include <iostream>
 
 // constructor + init target to empty string
 Parser::Parser() : target(""), ports(std::vector<unsigned short>()) 
@@ -7,18 +11,19 @@ Parser::Parser() : target(""), ports(std::vector<unsigned short>())
 }
 
 // testing parsing, more flags later!
+// testing parsing, more flags later!
 void Parser::parseArgs(int argc, char **argv)
 {
-    for(unsigned short i = 1; i < argc; i++){
+    for (unsigned short i = 1; i < argc; i++) {
         std::string curr = argv[i];
-        if (curr == "--ip" && (i+1)<argc) { 
-            target = argv[i+1]; 
+
+        if (curr == "--ip" && (i + 1) < argc && !std::string(argv[i + 1]).empty() && isValidIP(argv[i + 1]) ) {
+            target = argv[i + 1];argv[i + 1];
             i++;
         } else if (curr[0] == '-') // flag
         {
             flag_parser(&i, argv, *this);
         }
-        
     }
 }
 
