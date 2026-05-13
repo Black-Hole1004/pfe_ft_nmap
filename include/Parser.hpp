@@ -12,6 +12,7 @@ public:
     void parseArgs(int argc, char **argv);
 
     std::string target;
+    std::vector<unsigned short> ports;
 };
 
 #endif

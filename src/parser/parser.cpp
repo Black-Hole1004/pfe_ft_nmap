@@ -2,7 +2,7 @@
 #include "functions.hpp"
 
 // constructor + init target to empty string
-Parser::Parser() : target("") 
+Parser::Parser() : target(""), ports(std::vector<unsigned short>()) 
 {
 }
 
@@ -16,21 +16,28 @@ void Parser::parseArgs(int argc, char **argv)
             i++;
         } else if (curr[0] == '-') // flag
         {
-            flag_parser(&i, argv);
+            flag_parser(&i, argv, *this);
         }
         
     }
 }
 
-void flag_parser(unsigned short *index, char *argv[])
+void flag_parser(unsigned short *index, char *argv[], Parser &p)
 {
     std::string curr = argv[*index];
 
     if (curr == "-t") {
         std::cout << "test" << std::endl;
     } else if (curr == "-p") { // ports
-        std::string port = argv[*index + 1];
-        std::cout << "ports: " << port << std::endl;
+        std::string portString = argv[*index + 1];
+
+        try {
+            unsigned short portUShort = std::stoi(portString);
+            p.ports.push_back(portUShort); 
+        } catch (...) {
+            std::cerr << "Error: Invalid port number " << portString << std::endl;
+        }
+
         *index += 1;
     }
 }
