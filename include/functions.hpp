@@ -5,7 +5,7 @@
 #include "Parser.hpp"
 
 // parser.cpp
-void flag_parser(unsigned short *index, char *argv[], Parser &p);
+void flag_parser(unsigned short *index, int argc , char *argv[], Parser &p);
 
 // receive/pcap_handler.cpp
 void packet_handler(unsigned char *user, const struct pcap_pkthdr *hdr, const unsigned char *data);

@@ -21,7 +21,22 @@ int main(int argc, char *argv[])
     }
 
     if (!parser.ports.empty()) {
-        std::cout << "Port Range: " << parser.ports << std::endl;
-    }
-    return 0;
+      std::cout << "Ports :\n" << std::endl;
+
+      for (size_t i = 0; i < parser.ports.size(); i++)
+      {
+        std::cout << parser.ports[i] << "\n" << std::endl;
+      }
+    }  
+    else
+     std::cout << " no ports \n" << std::endl;
+    
+    
+    if(parser.verbose == true)
+     {std::cout << " verbose on \n" << std::endl;}
+    
+    else
+     {std::cout << " verbose off \n" << std::endl;}
+    
+     return 0;
 }
