@@ -13,6 +13,7 @@ public:
 
     std::string target;
     std::vector<unsigned short> ports;
+    bool verbose;
 };
 
 #endif
