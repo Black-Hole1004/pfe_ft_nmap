@@ -30,18 +30,14 @@ void flag_parser(unsigned short *index,int argc, char *argv[], Parser &p)
 {
     std::string curr = argv[*index];
 
-    if (curr == "-t") 
-    {
-        std::cout << "test" << std::endl;
-    }
-    else if (curr == "-p" && (*index + 1) < argc &&!std::string(argv[*index + 1]).empty())  
+    if (curr == "-p" && (*index + 1) < argc &&!std::string(argv[*index + 1]).empty())  
     {
         p.ports = split( argv[*index + 1],',');
         (*index )++;
     }
     else if(curr == "-v")
     {
-        p.verbose=true;
+        p.verbose = !p.verbose; // toggle
     }
     else
     std::cout << "syntax error" << std::endl;
