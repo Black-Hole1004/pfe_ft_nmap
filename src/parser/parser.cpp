@@ -22,12 +22,14 @@ void Parser::parseArgs(int argc, char **argv)
                 exit(1);
             }
 
-            if(!isValidIP(argv[i+1])) {
-                std::cout << ">>Error: IP is invalid (IPV4 format: X.X.X.X)." << std::endl;
+            std::string cleanIP = sanitizeIP(argv[i+1]);
+
+            if(!isValidIP(cleanIP)) {
+                std::cout << ">>Error: IP is invalid (IPV4 format: X.X.X.X, with X in 0-255)." << std::endl;
                 exit(1);
             }
             // checks passed = valid ip registered.
-            target = argv[i + 1];
+            target = cleanIP;
             i++;
         } else if (curr[0] == '-' && curr[1] != '-') {
             flag_parser(&i, argc, argv, *this);
