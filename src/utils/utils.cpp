@@ -59,6 +59,7 @@ int get_number(char *str)
     (void)str;
     return -1;
 }
+
 bool isValidIP(const std::string& ip)
 {
     std::regex pattern(
@@ -68,7 +69,7 @@ bool isValidIP(const std::string& ip)
     return std::regex_match(ip, pattern);
 }
 
- std::vector<unsigned short> split( const std::string& str, char del)
+ std::vector<unsigned short> split( const std::string &str, char del)
 {
     std::vector<unsigned short> result;
     std::stringstream ss(str);
@@ -83,7 +84,7 @@ bool isValidIP(const std::string& ip)
          result.push_back(A);
         }
         else
-        std::cout << "error " <<  item << " not number \n"<<std::endl;
+        std::cout << "error: " <<  item << " not a number."<<std::endl;
 
     }
 
