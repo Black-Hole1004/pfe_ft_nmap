@@ -1,6 +1,7 @@
 #include "functions.hpp"
 #include "Parser.hpp"
 #include "Receiver.hpp"
+#include "Sender.hpp"
 
 t_scan g_scan = {};
 
@@ -16,13 +17,16 @@ int main(int argc, char *argv[]) {
 	std::cout << "Target IP : " << parser.target << std::endl;
 
 	if (!parser.ports.empty()) {
-		std::cout << "Ports: " << std::endl;
+		std::cout << "Ports: ";
 
 		for (size_t i = 0; i < parser.ports.size(); i++) {
 			std::cout << parser.ports[i] << std::endl;
 		}
 
-		// test receiver, dir ctl+c bach tkhroj -----------------------------
+
+		Sender sender;
+        sender.sendAll(parser.target, parser.ports);
+		// test receiver, ctl+c for exit  -----------------------------
 		Receiver receiver;
 		std::cout << "Receiving... 'CTRL' + 'C' to exit" << std::endl;
 		receiver.receiveAll();

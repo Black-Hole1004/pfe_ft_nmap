@@ -11,11 +11,12 @@ void flag_parser(unsigned short *index, int argc , char *argv[], Parser &p);
 void packet_handler(unsigned char *user, const struct pcap_pkthdr *hdr, const unsigned char *data);
 
 // send/send.cpp
+extern int raw_socket_fd;
 void init_send();
 
 // send/thread.cpp
 void *routine(void *arg);
-void thread_send();
+void thread_send(const std::string& target_ip, const std::vector<unsigned short>& ports);
 
 // send/network.cpp
 t_packet_header create_packet(t_technique technique);
