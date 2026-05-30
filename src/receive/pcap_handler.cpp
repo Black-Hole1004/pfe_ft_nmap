@@ -17,8 +17,11 @@ void packet_handler(unsigned char *user, const struct pcap_pkthdr *hdr, const un
         if((tcp->th_flags & TH_SYN) && (tcp->th_flags & TH_ACK)) // TH_SYN = synchronize, TH_ACK = acknowledge.
         // check with '&' bitwise AND
         {
-            std::cout << "Port: " << sourcePort << " is open." << std::endl; 
+            g_port_results[sourcePort] = STATE_OPEN;
+        }else if (tcp->th_flags & TH_RST) {
+            g_port_results[sourcePort] = STATE_CLOSED;
         }
+
     } else if(ipHeader->ip_p == IPPROTO_ICMP) {
         std::cout << "#ICMP_PACKET --" << std::endl;
     }

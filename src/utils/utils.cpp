@@ -50,6 +50,7 @@ int is_number(const std::string& str)
 
     return 1;
 }
+
 void check_down()
 {
 }
