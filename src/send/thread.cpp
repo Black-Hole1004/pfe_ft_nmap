@@ -38,11 +38,11 @@ void *routine(void *arg)
         struct sockaddr_in dest_info;
         dest_info.sin_family = AF_INET;
         dest_info.sin_port = htons(portScan);
-        dest_info.sin_addr.s_addr = inet_addr("192.168.1.1"); 
+        dest_info.sin_addr.s_addr = inet_addr("192.168.1.107"); 
 
         t_packet_header packet = create_packet(SYN);
 
-        packet.ipv4.saddr = inet_addr("10.0.2.15");
+        packet.ipv4.saddr = inet_addr("192.168.1.106");
         packet.ipv4.daddr = dest_info.sin_addr.s_addr;
         packet.tcp.source = htons(54321);
         packet.tcp.dest = htons(portScan);

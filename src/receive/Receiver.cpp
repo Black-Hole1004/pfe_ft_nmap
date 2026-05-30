@@ -23,6 +23,8 @@ void Receiver::receiveAll()
         return;
     }
 
+    g_scan.handle = handle;
+    g_scan.stop_pcap = false;
     // filter traffic
     struct bpf_program filter;
     std::string filterString = "tcp"; // cpp string, converted to C "string" with std::c_str()
@@ -36,7 +38,7 @@ void Receiver::receiveAll()
 
     std::cout << "listening on " << device << std::endl;
 
-    int count = -1; // number of packets. -1 = infinite loop
-    pcap_loop(handle, count, packet_handler, nullptr);
+    int count = 50; // number of packets. -1 = infinite loop
+    pcap_loop(g_scan.handle, count, packet_handler, nullptr);
     pcap_close(handle);
 }

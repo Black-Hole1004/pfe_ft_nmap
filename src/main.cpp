@@ -2,8 +2,10 @@
 #include "Parser.hpp"
 #include "Receiver.hpp"
 #include "Sender.hpp"
+#include "syn_scan.hpp"
 
 t_scan g_scan = {};
+u_int8_t g_port_results[65636] = {0};
 
 int main(int argc, char *argv[]) {
   
@@ -23,22 +25,14 @@ int main(int argc, char *argv[]) {
 			std::cout << parser.ports[i] << std::endl;
 		}
 
-
-		Sender sender;
-        sender.sendAll(parser.target, parser.ports);
-		// test receiver, ctl+c for exit  -----------------------------
-		Receiver receiver;
-		std::cout << "Receiving... 'CTRL' + 'C' to exit" << std::endl;
-		receiver.receiveAll();
-		// endtest ----------------------------------------------------------
-
+		SynScan scanner;
+		scanner.run(parser.target, parser.ports);
 	}  
-	else std::cout << " no ports" << std::endl;
+	else std::cout << " no ports specified." << std::endl;
 
 
 	if(parser.verbose == true)
 	{std::cout << " verbose on" << std::endl;}
-
 	else
 	{std::cout << " verbose off" << std::endl;}
 
