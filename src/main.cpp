@@ -4,37 +4,114 @@
 #include "Sender.hpp"
 #include "syn_scan.hpp"
 
+#include <unistd.h>
+#include <signal.h>
+#include <iostream>
+#include <cstring>
+#include <arpa/inet.h>
+
 t_scan g_scan = {};
-u_int8_t g_port_results[65636] = {0};
+u_int8_t g_port_results[65536] = {0};
 
-int main(int argc, char *argv[]) {
-  
-	if (argc < 2) {
-		std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> / -v / -p <port>" << std::endl;
-		return 1;
-	}
-	Parser parser;
-	parser.parseArgs(argc, argv);
-	
-	std::cout << "Target IP : " << parser.target << std::endl;
+int main(int argc, char *argv[])
+{
+    if (getuid() != 0) {
+        std::cerr << "You need to be root to run this program" << std::endl;
+        return 1;
+    }
 
-	if (!parser.ports.empty()) {
-		std::cout << "Ports: ";
+    if (argc < 2) {
+        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...>" << std::endl;
+        return 1;
+    }
 
-		for (size_t i = 0; i < parser.ports.size(); i++) {
-			std::cout << parser.ports[i] << std::endl;
-		}
+    Parser parser;
+    parser.parseArgs(argc, argv);
 
-		SynScan scanner;
-		scanner.run(parser.target, parser.ports);
-	}  
-	else std::cout << " no ports specified." << std::endl;
+    if (parser.target.empty()) {
+        std::cerr << "No target specified" << std::endl;
+        return 1;
+    }
 
+    std::cout << "Target IP : " << parser.target << std::endl;
 
-	if(parser.verbose == true)
-	{std::cout << " verbose on" << std::endl;}
-	else
-	{std::cout << " verbose off" << std::endl;}
+    g_scan.options.family = AF_INET;
+    g_scan.options.thread_count = 4; // default thread count
+    g_scan.options.verbose = parser.verbose ? 1 : 0;
 
-	return 0;
+    // Resolve target
+    t_IP target = resolve_target(parser.target);
+    add_IP(target);
+
+    // Get interface
+    g_scan.interface = get_interface();
+
+    // Setup ports
+    if (!parser.ports.empty()) {
+        for (unsigned short p : parser.ports) {
+            g_scan.options.port[p] = true;
+            g_scan.options.port_count++;
+        }
+    } else {
+        for (int p = PORT_MIN; p <= PORT_MAX; p++) {
+            g_scan.options.port[p] = true;
+            g_scan.options.port_count++;
+        }
+    }
+
+    // Setup techniques (default SYN only for now)
+    g_scan.options.technique[SYN] = true;
+    g_scan.options.technique_count = 1;
+
+    // Clamp thread count
+    if (g_scan.options.thread_count > g_scan.options.port_count * g_scan.options.technique_count)
+        g_scan.options.thread_count = g_scan.options.port_count * g_scan.options.technique_count;
+    if (g_scan.options.thread_count == 0)
+        g_scan.options.thread_count = 1;
+
+    // Find pcap device
+    std::string device = find_pcap_device(parser.target);
+    if (device.empty()) {
+        std::cerr << "No suitable pcap device found" << std::endl;
+        return 1;
+    }
+
+    // Open pcap
+    char errbuf[PCAP_ERRBUF_SIZE];
+    g_scan.handle = pcap_open_live(device.c_str(), BUFSIZ, 1, 1000, errbuf);
+    if (!g_scan.handle) {
+        std::cerr << "pcap_open_live: " << errbuf << std::endl;
+        return 1;
+    }
+
+    // Build and set pcap filter: host <target>
+    char filter[BUFSIZ] = {0};
+    for (t_IP *ip = g_scan.ip; ip != NULL; ip = ip->next) {
+        char ip_str[INET6_ADDRSTRLEN] = {0};
+        inet_ntop(g_scan.options.family,
+                  g_scan.options.family == AF_INET ? (void*)&ip->addr.ipv4.sin_addr : (void*)&ip->addr.ipv6.sin6_addr,
+                  ip_str, sizeof(ip_str));
+        std::strcat(filter, "host ");
+        std::strcat(filter, ip_str);
+        if (ip->next)
+            std::strcat(filter, " or ");
+    }
+    std::cout << "Filter: " << filter << std::endl;
+
+    struct bpf_program fp = {0};
+    if (pcap_compile(g_scan.handle, &fp, filter, 1, PCAP_NETMASK_UNKNOWN) == -1 ||
+        pcap_setfilter(g_scan.handle, &fp) == -1) {
+        std::cerr << "Failed to set pcap filter" << std::endl;
+        return 1;
+    }
+    pcap_freecode(&fp);
+
+    // Run scan
+    SynScan scanner;
+    scanner.run(parser.target, parser.ports);
+
+    pcap_close(g_scan.handle);
+    free_IPs();
+
+    return 0;
 }

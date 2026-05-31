@@ -127,6 +127,6 @@ typedef struct
 } t_scan;
 
 extern t_scan g_scan;
-extern u_int8_t g_port_results[65636];
+extern u_int8_t g_port_results[65536];
 
 #endif
