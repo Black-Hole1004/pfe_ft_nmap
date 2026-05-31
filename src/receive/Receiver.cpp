@@ -9,15 +9,40 @@ Receiver::Receiver() {}
 void Receiver::receiveAll()
 {
     char errorBuffer[PCAP_ERRBUF_SIZE];
+    pcap_if_t *alldevs;
+    pcap_if_t *d;
+    std::string device = "";
 
-    char *device = pcap_lookupdev(errorBuffer);
-    if(!device) {
-        std::cout << "no device found, " << errorBuffer << std::endl;
+    if (pcap_findalldevs(&alldevs, errorBuffer) == -1) {
+        std::cout << "Error in pcap_findalldevs: " << errorBuffer << std::endl;
+        return;
+    }
+    
+    for (d = alldevs; d != NULL; d = d->next) {
+        if (std::string(d->name) == "eth0") {
+            device = d->name;
+            break;
+        }
+    }
+    if (device.empty()) { // Fallback to loopback
+        for (d = alldevs; d != NULL; d = d->next) {
+            if (std::string(d->name) == "lo") {
+                device = d->name;
+                break;
+            }
+        }
+    }
+
+    if (device.empty()) {
+        std::cout << "No interfaces found." << std::endl;
+        pcap_freealldevs(alldevs);
         return;
     }
 
     // opening device, params : name, snapshot length, promiscuous mode, timeout 1000ms, error buffer.
-    pcap_t *handle = pcap_open_live(device, BUFSIZ, 1, 1000, errorBuffer);
+    pcap_t *handle = pcap_open_live(device.c_str(), BUFSIZ, 1, 1000, errorBuffer);
+    pcap_freealldevs(alldevs);
+
     if(!handle) {
         std::cout << "couldn't open device, " << errorBuffer << std::endl;
         return;

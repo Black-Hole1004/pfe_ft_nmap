@@ -38,13 +38,14 @@ void *routine(void *arg)
         struct sockaddr_in dest_info;
         dest_info.sin_family = AF_INET;
         dest_info.sin_port = htons(portScan);
-        dest_info.sin_addr.s_addr = inet_addr("192.168.1.107"); 
+        dest_info.sin_addr.s_addr = inet_addr(target_ip_str.c_str()); 
 
         t_packet_header packet = create_packet(SYN);
-
-        packet.ipv4.saddr = inet_addr("192.168.1.106");
+        unsigned short random_source_port = 49152 + (rand() % (65535 - 49152));
+        
+        packet.ipv4.saddr = inet_addr("172.28.240.139");
         packet.ipv4.daddr = dest_info.sin_addr.s_addr;
-        packet.tcp.source = htons(54321);
+        packet.tcp.source = htons(random_source_port);
         packet.tcp.dest = htons(portScan);
 
         calculate_checksum(IPPROTO_TCP, &packet, sizeof(t_packet_header), NULL);

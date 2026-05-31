@@ -34,7 +34,7 @@ void SynScan::run(const std::string& target_ip, const std::vector<unsigned short
         return;
     }
 
-    usleep(100000);
+    usleep(1000000);
 
     std::cout << "[Scanner] Handing execution to worker dispatch..." << std::endl;
     sender.sendAll(target_ip, ports);
