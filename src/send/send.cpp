@@ -3,7 +3,7 @@
 int raw_socket_fd = -1; // raw socket file descriptor
 
 void init_send() {
-    raw_socket_fd = create_socket(IPPROTO_RAW);
+    raw_socket_fd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
 
     if (raw_socket_fd < 0)
     {

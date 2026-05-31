@@ -3,10 +3,9 @@
 #include <pcap.h>
 #include <iostream>
 
-
 Receiver::Receiver() {}
 
-void Receiver::receiveAll()
+void Receiver::receiveAll(const std::string& target_ip)
 {
     char errorBuffer[PCAP_ERRBUF_SIZE];
     pcap_if_t *alldevs;
@@ -17,16 +16,18 @@ void Receiver::receiveAll()
         std::cout << "Error in pcap_findalldevs: " << errorBuffer << std::endl;
         return;
     }
-    
+    std::string preferred_interface = (target_ip == "127.0.0.1" || target_ip == "localhost") ? "lo" : "eth0";
+
     for (d = alldevs; d != NULL; d = d->next) {
-        if (std::string(d->name) == "eth0") {
+        if (std::string(d->name) == preferred_interface) {
             device = d->name;
             break;
         }
     }
-    if (device.empty()) { // Fallback to loopback
+
+    if (device.empty()) {
         for (d = alldevs; d != NULL; d = d->next) {
-            if (std::string(d->name) == "lo") {
+            if (std::string(d->name) == "lo" || std::string(d->name) == "eth0") {
                 device = d->name;
                 break;
             }

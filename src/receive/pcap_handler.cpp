@@ -7,10 +7,19 @@ void packet_handler(unsigned char *user, const struct pcap_pkthdr *hdr, const un
     
     int linkType = pcap_datalink(g_scan.handle);
     int offset = 14; // (eth0)
-    if (linkType == DLT_NULL) {
-        offset = 4; // (lo)
+    if (linkType == DLT_LINUX_SLL) {
+        offset = 16;
     }
-    struct ip *ipHeader = (struct ip *)(data + offset);
+    struct ip *ipHeader;
+    if (linkType == DLT_NULL) {
+        offset = 4;
+        uint32_t family = *(const uint32_t *)data;
+        if (family != AF_INET && family != 2) {
+            return;
+        }
+    }
+    ipHeader = (struct ip *)(data + offset);
+
     if(ipHeader->ip_p == IPPROTO_TCP) {
         int ipLength = ipHeader->ip_hl * 4; // ip header
         struct tcphdr *tcp = (struct tcphdr *)(data + offset + ipLength); // data = raw bytes (char*) => cast + skip headers.

@@ -9,10 +9,11 @@
 
 SynScan::SynScan() {}
 SynScan::~SynScan() {}
+std::string target;
 
 void* run_receiver_thread(void* arg) {
     Receiver* receiver = static_cast<Receiver*>(arg);
-    receiver->receiveAll();
+    receiver->receiveAll(target);
     return nullptr;
 }
 
@@ -20,6 +21,7 @@ void SynScan::run(const std::string& target_ip, const std::vector<unsigned short
     pthread_t bg_receiver_thread;
     Receiver receiver;
     Sender sender;
+    target = target_ip;
 
     for (unsigned short port : ports) {
         g_port_results[port] = STATE_FILTERED;
