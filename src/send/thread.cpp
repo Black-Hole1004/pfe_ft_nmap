@@ -3,6 +3,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <vector>
+#include <cstring>
 
 #define THREAD_COUNT 4
 
@@ -36,22 +37,34 @@ void *routine(void *arg)
         pthread_mutex_unlock(&print_mutex);
     
         struct sockaddr_in dest_info;
+        std::memset(&dest_info, 0, sizeof(dest_info));
         dest_info.sin_family = AF_INET;
         dest_info.sin_port = htons(portScan);
-        dest_info.sin_addr.s_addr = inet_addr("192.168.1.107"); 
+        dest_info.sin_addr.s_addr = inet_addr(target_ip_str.c_str()); 
 
         t_packet_header packet = create_packet(SYN);
-
-        packet.ipv4.saddr = inet_addr("192.168.1.106");
+        unsigned short random_source_port = 49152 + (rand() % (65535 - 49152));
+        
+        if (target_ip_str == "127.0.0.1" || target_ip_str == "localhost") {
+            packet.ipv4.saddr = inet_addr("127.0.0.1");
+        } else {
+            packet.ipv4.saddr = inet_addr("172.28.240.139");
+        }
         packet.ipv4.daddr = dest_info.sin_addr.s_addr;
-        packet.tcp.source = htons(54321);
+        packet.tcp.source = htons(random_source_port);
         packet.tcp.dest = htons(portScan);
 
         calculate_checksum(IPPROTO_TCP, &packet, sizeof(t_packet_header), NULL);
 
-        sendto(raw_socket_fd, &packet, sizeof(t_packet_header), 0, 
-            (struct sockaddr *)&dest_info, sizeof(dest_info));
+        ssize_t bytes_sent = sendto(raw_socket_fd, &packet, sizeof(t_packet_header), 0, 
+                                    (struct sockaddr *)&dest_info, sizeof(dest_info));
 
+        if (bytes_sent < 0) {
+            pthread_mutex_lock(&print_mutex);
+            std::cerr << ">> [Thread " << thread << "] sendto failed on port " 
+                    << portScan << std::endl;
+            pthread_mutex_unlock(&print_mutex);
+        }
     }
     
     pthread_mutex_lock(&print_mutex);
