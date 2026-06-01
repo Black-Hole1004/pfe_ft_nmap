@@ -41,22 +41,48 @@ void *routine(void *arg)
         dest_info.sin_family = AF_INET;
         dest_info.sin_port = htons(portScan);
         dest_info.sin_addr.s_addr = inet_addr(target_ip_str.c_str()); 
-
-        t_packet_header packet = create_packet(SYN);
-        unsigned short random_source_port = 49152 + (rand() % (65535 - 49152));
         
-        if (target_ip_str == "127.0.0.1" || target_ip_str == "localhost") {
-            packet.ipv4.saddr = inet_addr("127.0.0.1");
+        char raw_packet_buffer[40];
+        std::memset(raw_packet_buffer, 0, sizeof(raw_packet_buffer));
+        
+        t_tcp_ipv4_packet template_packet = create_packet(SYN);
+        
+        struct iphdr *ip_layer   = (struct iphdr *)(raw_packet_buffer);
+        struct tcphdr *tcp_layer = (struct tcphdr *)(raw_packet_buffer + sizeof(struct iphdr));
+        
+        std::memcpy(ip_layer, &(template_packet.ipv4), sizeof(struct iphdr));
+        std::memcpy(tcp_layer, &(template_packet.tcp), sizeof(struct tcphdr));
+        
+        ip_layer->id      = htons(12345);
+        ip_layer->tot_len = htons(40);
+        tcp_layer->seq    = htonl(11223344);
+
+        unsigned short random_source_port = 49152 + (rand() % (65535 - 49152));
+
+        if (target_ip_str == "127.0.0.1") {
+            ip_layer->saddr = inet_addr("127.0.0.1");
         } else {
-            packet.ipv4.saddr = inet_addr("172.28.240.139");
+            ip_layer->saddr = inet_addr("172.28.240.139");
         }
-        packet.ipv4.daddr = dest_info.sin_addr.s_addr;
-        packet.tcp.source = htons(random_source_port);
-        packet.tcp.dest = htons(portScan);
+        ip_layer->daddr = dest_info.sin_addr.s_addr;
+        ip_layer->tot_len = htons(40);
 
-        calculate_checksum(IPPROTO_TCP, &packet, sizeof(t_packet_header), NULL);
+        tcp_layer->source = htons(random_source_port);
+        tcp_layer->dest = htons(portScan);
 
-        ssize_t bytes_sent = sendto(raw_socket_fd, &packet, sizeof(t_packet_header), 0, 
+        calculate_checksum(IPPROTO_TCP, (t_tcp_ipv4_packet *)raw_packet_buffer, 40, NULL);
+
+        pthread_mutex_lock(&print_mutex);
+        std::cout << "\n--- RAW BUFFER DUMP FOR PORT " << portScan << " ---" << std::endl;
+        for (int i = 0; i < 40; i++) {
+            printf("%02X ", (unsigned char)raw_packet_buffer[i]);
+            if ((i + 1) % 16 == 0) std::cout << std::endl;
+        }
+        std::cout << "\n----------------------------------------\n" << std::endl;
+        pthread_mutex_unlock(&print_mutex);
+
+
+        ssize_t bytes_sent = sendto(raw_socket_fd, raw_packet_buffer, 40, 0, 
                                     (struct sockaddr *)&dest_info, sizeof(dest_info));
 
         if (bytes_sent < 0) {

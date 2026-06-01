@@ -1,10 +1,10 @@
 #include "functions.hpp"
 #include <cstring>
 
-t_packet_header create_packet(t_technique technique)
+t_tcp_ipv4_packet create_packet(t_technique technique)
 {
-    t_packet_header packet;
-    std::memset(&packet, 0, sizeof(t_packet_header));
+    t_tcp_ipv4_packet packet;
+    std::memset(&packet, 0, sizeof(t_tcp_ipv4_packet));
 
     packet.ipv4.version  = 4;
     packet.ipv4.ihl      = 5;

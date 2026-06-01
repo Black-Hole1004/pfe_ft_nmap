@@ -19,12 +19,12 @@ void *routine(void *arg);
 void thread_send(const std::string& target_ip, const std::vector<unsigned short>& ports);
 
 // send/network.cpp
-t_packet_header create_packet(t_technique technique);
+t_tcp_ipv4_packet create_packet(t_technique technique);
 int create_socket(int protocol);
 
 // send/checksum.cpp
 unsigned short checksum(unsigned short *addr, size_t len);
-void calculate_checksum(u_int8_t protocol, t_packet_header *packet, unsigned short packet_size, t_IP *IP);
+void calculate_checksum(u_int8_t protocol, t_tcp_ipv4_packet *packet, unsigned short packet_size, t_IP *IP);
 
 // utils/utils.cpp
 void error(int code, char *fmt, ...);

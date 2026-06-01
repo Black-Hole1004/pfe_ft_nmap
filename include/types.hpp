@@ -57,6 +57,12 @@ typedef union
     struct icmphdr icmp;
 } t_packet_header;
 
+// experimental
+typedef struct  {
+    struct iphdr  ipv4;
+    struct tcphdr tcp;
+} t_tcp_ipv4_packet;
+
 typedef enum
 {
     ACK = 0,
