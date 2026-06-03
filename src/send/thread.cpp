@@ -98,14 +98,14 @@ void thread_send()
     for (int technique = 0; technique < TECHNIQUE_COUNT; technique++)
         if (g_scan.options.technique[technique])
         {
-            int threads_for_tech[chunks[technique]];
-            dispatch(g_scan.options.port_count, threads_for_tech, (t_range){0, chunks[technique]}, NULL);
+            std::vector<int> threads_for_tech(chunks[technique]);
+            dispatch(g_scan.options.port_count, threads_for_tech.data(), (t_range){0, chunks[technique]}, NULL);
 
             int current = 0;
             for (int thread_no = 0; thread_no < chunks[technique]; thread_no++) {
                 t_options *range = new t_options();
                 std::memset(range, 0, sizeof(t_options));
-                int amount = threads_for_tech[thread_no];
+                int amount = threads_for_tech.at(thread_no);
 
                 for (int i = 0; i < TECHNIQUE_COUNT; i++)
                     range->technique[i] = false;
@@ -124,7 +124,7 @@ void thread_send()
                 if (g_scan.options.verbose == 1)
                     std::cout << "\rSending " << get_technique_name(static_cast<t_technique>(technique)) << " packets...\t(" << (thread_no + 1) << "/" << chunks[technique] << ")" << std::flush;
                 else if (g_scan.options.verbose == 2)
-                    std::cout << "(thread id: " << id << " | technique: " << get_technique_name(static_cast<t_technique>(technique)) << " | amount of ports: " << threads_for_tech[thread_no] << ")" << std::endl;
+                    std::cout << "(thread id: " << id << " | technique: " << get_technique_name(static_cast<t_technique>(technique)) << " | amount of ports: " << threads_for_tech.at(thread_no) << ")" << std::endl;
 
                 if (pthread_create(&threads[id++], NULL, routine, range) != 0)
                     std::cerr << "pthread_create: " << strerror(errno) << std::endl;

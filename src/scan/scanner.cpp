@@ -103,6 +103,7 @@ void Scanner::run(const std::string& target_ip, const std::vector<unsigned short
                     else if (st == CLOSED) g_port_results[port] = STATE_CLOSED;
                     else g_port_results[port] = STATE_FILTERED;
                 });
+                std::cout << "--------------------------\n";
             }
     }
 }
