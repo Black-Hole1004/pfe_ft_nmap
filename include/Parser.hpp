@@ -14,6 +14,7 @@ public:
     std::string target;
     std::vector<unsigned short> ports;
     bool verbose;
+    std::vector<std::string> scan_types;
 };
 
 #endif

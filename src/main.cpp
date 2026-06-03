@@ -2,7 +2,7 @@
 #include "Parser.hpp"
 #include "Receiver.hpp"
 #include "Sender.hpp"
-#include "syn_scan.hpp"
+#include "scanner.hpp"
 
 #include <unistd.h>
 #include <signal.h>
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     }
 
     if (argc < 2) {
-        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...>" << std::endl;
+        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...> -[sS|sF|sN|sX]" << std::endl;
         return 1;
     }
 
@@ -53,15 +53,40 @@ int main(int argc, char *argv[])
             g_scan.options.port_count++;
         }
     } else {
-        for (int p = PORT_MIN; p <= PORT_MAX; p++) {
+        /* for (int p = PORT_MIN; p <= PORT_MAX; p++) {
+            g_scan.options.port[p] = true;
+            g_scan.options.port_count++;
+        } */
+        for (int p = PORT_MIN; p <= 10; p++) {
             g_scan.options.port[p] = true;
             g_scan.options.port_count++;
         }
     }
 
     // Setup techniques (default SYN only for now)
-    g_scan.options.technique[SYN] = true;
-    g_scan.options.technique_count = 1;
+    std::memset(g_scan.options.technique, 0, sizeof(g_scan.options.technique));
+    g_scan.options.technique_count = 0;
+
+    if (!parser.scan_types.empty()) {
+        for (const std::string& type : parser.scan_types) {
+            if (type == "SYN" && !g_scan.options.technique[SYN]) {
+                g_scan.options.technique[SYN] = true;
+                g_scan.options.technique_count++;
+            }
+            else if (type == "FIN" && !g_scan.options.technique[FIN]) {
+                g_scan.options.technique[FIN] = true;
+                g_scan.options.technique_count++;
+            }
+            else if (type == "NUL" && !g_scan.options.technique[NUL]) {
+                g_scan.options.technique[NUL] = true;
+                g_scan.options.technique_count++;
+            }
+        }
+    } else {
+        // Fallback default if no scan flags are provided
+        g_scan.options.technique[SYN] = true;
+        g_scan.options.technique_count = 1;
+    }
 
     // Clamp thread count
     if (g_scan.options.thread_count > g_scan.options.port_count * g_scan.options.technique_count)
@@ -107,8 +132,9 @@ int main(int argc, char *argv[])
     pcap_freecode(&fp);
 
     // Run scan
-    SynScan scanner;
+    Scanner scanner;
     scanner.run(parser.target, parser.ports);
+    scanner.printSummaryMatrix(parser.ports);
 
     pcap_close(g_scan.handle);
     free_IPs();
