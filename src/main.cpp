@@ -69,7 +69,11 @@ int main(int argc, char *argv[])
 
     if (!parser.scan_types.empty()) {
         for (const std::string& type : parser.scan_types) {
-            if (type == "SYN" && !g_scan.options.technique[SYN]) {
+            if (type == "ACK" && !g_scan.options.technique[ACK]) {
+                g_scan.options.technique[ACK] = true;
+                g_scan.options.technique_count++;
+            }
+            else if (type == "SYN" && !g_scan.options.technique[SYN]) {
                 g_scan.options.technique[SYN] = true;
                 g_scan.options.technique_count++;
             }
@@ -81,12 +85,23 @@ int main(int argc, char *argv[])
                 g_scan.options.technique[NUL] = true;
                 g_scan.options.technique_count++;
             }
+            else if (type == "XMAS" && !g_scan.options.technique[XMAS]) {
+                g_scan.options.technique[XMAS] = true;
+                g_scan.options.technique_count++;
+            }
+            else if (type == "UDP" && !g_scan.options.technique[UDP]) {
+                g_scan.options.technique[UDP] = true;
+                g_scan.options.technique_count++;
+            }
         }
     } else {
         // Fallback default if no scan flags are provided
         g_scan.options.technique[SYN] = true;
         g_scan.options.technique_count = 1;
     }
+
+    // exclusive scans : 
+    
 
     // Clamp thread count
     if (g_scan.options.thread_count > g_scan.options.port_count * g_scan.options.technique_count)

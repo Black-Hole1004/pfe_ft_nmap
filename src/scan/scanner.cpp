@@ -33,12 +33,13 @@ void Scanner::run(const std::string& target_ip, const std::vector<unsigned short
         if (ip->is_down)
             continue;
         for (int t = 0; t < TECHNIQUE_COUNT; t++)
-            if (g_scan.options.technique[t])
+            if (g_scan.options.technique[t]){
                 for_each_port([&](unsigned short port) {
                     ip->status[t][port] = FILTERED;
                     if (t == FIN || t == NUL || t == XMAS || t == UDP)
                         ip->status[t][port] = static_cast<t_status>(ip->status[t][port] | OPEN);
                 });
+            }
     }
 
     std::cout << "\n--- Starting Scan ---" << std::endl;

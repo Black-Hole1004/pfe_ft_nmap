@@ -51,14 +51,24 @@ void flag_parser(unsigned short *index,int argc, char *argv[], Parser &p) {
     }
     else if(curr == "-v") {
         p.verbose = !p.verbose; // toggle
-    }else if (curr == "-sF") { 
-        p.scan_types.push_back("FIN");
+    }
+    else if (curr == "-sA") { 
+        p.scan_types.push_back("ACK");
     }
     else if (curr == "-sS") { 
         p.scan_types.push_back("SYN");
     }
+    else if (curr == "-sF") { 
+        p.scan_types.push_back("FIN");
+    }
     else if (curr == "-sN") { 
         p.scan_types.push_back("NUL");
+    }
+    else if (curr == "-sX") { 
+        p.scan_types.push_back("XMAS");
+    }
+    else if (curr == "-sU") { 
+        p.scan_types.push_back("UDP");
     }
     else {
         std::cout << ">>Error: Unknown flag." << std::endl;
