@@ -104,6 +104,9 @@ int main(int argc, char *argv[])
     
 
     // Clamp thread count
+    if (g_scan.options.thread_count < g_scan.options.technique_count)
+        g_scan.options.thread_count = g_scan.options.technique_count;
+
     if (g_scan.options.thread_count > g_scan.options.port_count * g_scan.options.technique_count)
         g_scan.options.thread_count = g_scan.options.port_count * g_scan.options.technique_count;
     if (g_scan.options.thread_count == 0)
