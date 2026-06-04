@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "functions.hpp"
 #include "scanner.hpp"
+#include "types.hpp"
 #include <thread>
 #include <mutex>
 #include <vector>
@@ -11,22 +12,24 @@
 #include <arpa/inet.h>
 
 static char target_ip_buf[128] = "127.0.0.1";
-static char ports_buf[512] = "80,443,22,21";
+static char ports_buf[512] = "8000,443,22";
 static std::vector<std::string> ui_logs;
 static std::mutex log_mutex;
 static bool is_scanning = false;
+
+extern t_scan g_scan;
 
 void LogToConsole(const std::string& message) {
     std::lock_guard<std::mutex> lock(log_mutex);
     ui_logs.push_back(message);
 }
 
-
 void RunScanWorker(std::string target_ip, std::vector<unsigned short> parsed_ports) {
     Scanner scanner;
     LogToConsole("[+] Executing scanner engine run loop...");
     scanner.run(target_ip, parsed_ports);
-    LogToConsole("[+] Scan complete! Generating matrix summary...");
+    LogToConsole("[+] Scan complete!");
+    // LogToConsole("[+] Generating matrix summary...");
     // Future expansion: we can capture or parse results here for charts
     //
     //
@@ -35,14 +38,13 @@ void RunScanWorker(std::string target_ip, std::vector<unsigned short> parsed_por
         pcap_close(g_scan.handle);
         g_scan.handle = nullptr;
     }
-    free_IPs();
     
     is_scanning = false;
 }
 
 void RenderScannerUI() {
     ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(550, 230), ImGuiCond_FirstUseEver);
     
     ImGui::Begin("pfe_ft_nmap - Control Panel");
 
@@ -62,12 +64,6 @@ void RenderScannerUI() {
 
     ImGui::Separator();
     
-    int temp_thread_count = static_cast<int>(g_scan.options.thread_count);
-    if (temp_thread_count < 1) temp_thread_count = 1;
-    if (ImGui::SliderInt("Worker Thread Pool Count", &temp_thread_count, 1, 6)) {
-        g_scan.options.thread_count = static_cast<unsigned short>(temp_thread_count);
-    }
-    
     ImGui::Separator();
 
     if (is_scanning) {
@@ -78,6 +74,7 @@ void RenderScannerUI() {
             ui_logs.clear();
             LogToConsole("[+] Initializing scan environment...");
 
+            free_IPs();
             // 1. Calculate active scan techniques selection
             g_scan.options.technique_count = 0;
             for (int i = 0; i < TECHNIQUE_COUNT; i++) {
@@ -129,7 +126,6 @@ void RenderScannerUI() {
             std::string device = find_pcap_device(target_ip_buf);
             if (device.empty()) {
                 LogToConsole("[-] Error: No suitable pcap device found.");
-                free_IPs();
                 is_scanning = false;
             } else {
                 char errbuf[PCAP_ERRBUF_SIZE] = {0};
@@ -139,7 +135,6 @@ void RenderScannerUI() {
                     std::string err_msg = "[-] pcap_open_live error: ";
                     err_msg += errbuf;
                     LogToConsole(err_msg);
-                    free_IPs();
                     is_scanning = false;
                 } else {
                     char filter[BUFSIZ] = {0};
@@ -158,7 +153,7 @@ void RenderScannerUI() {
                         pcap_setfilter(g_scan.handle, &fp) == -1) {
                         LogToConsole("[-] Error: Failed to set pcap compilation filters.");
                         pcap_close(g_scan.handle);
-                        free_IPs();
+                        
                         is_scanning = false;
                     } else {
                         pcap_freecode(&fp);
@@ -172,8 +167,8 @@ void RenderScannerUI() {
     ImGui::End();
 
     // Console Logging Stream Window Right Side
-    ImGui::SetNextWindowPos(ImVec2(580, 10), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(680, 680), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(10, 250), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(550, 440), ImGuiCond_FirstUseEver);
     ImGui::Begin("Live Scanner Console Logs");
     ImGui::BeginChild("LogScroller");
     
@@ -185,5 +180,59 @@ void RenderScannerUI() {
         ImGui::SetScrollHereY(1.0f);
         
     ImGui::EndChild();
+    ImGui::End();
+}
+
+void RenderScanResultsWindow() {
+    ImGui::SetNextWindowPos(ImVec2(570, 10), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(690, 680), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Scan Diagnostics");
+
+    for (t_IP *ip = g_scan.ip; ip != nullptr; ip = ip->next) 
+    {
+        if (ip->is_down) continue;
+
+        ImGui::SeparatorText(ip->name); 
+
+        if (ImGui::BeginTabBar("Techniques")) {
+            for (int t = 0; t < TECHNIQUE_COUNT; t++) {
+                if (!g_scan.options.technique[t]) continue;
+
+                std::string tech_name = get_technique_name(static_cast<t_technique>(t));
+                if (ImGui::BeginTabItem(tech_name.c_str())) {
+                    if (ImGui::BeginTable("ResultsTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+                        ImGui::TableSetupColumn("PORT / PROTOCOL");
+                        ImGui::TableSetupColumn("STATE");
+                        ImGui::TableHeadersRow();
+
+                        for (int port = 0; port <= 65535; port++) 
+                        {
+                            if (!g_scan.options.port[port]) continue; 
+
+                            t_status st = ip->status[t][port];
+                            std::string state_str = "Unknown";
+                            ImVec4 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); 
+
+                            if (st == OPEN) { state_str = "open"; color = ImVec4(0.2f, 0.8f, 0.2f, 1.0f); }
+                            else if (st == CLOSED) { state_str = "closed"; color = ImVec4(0.8f, 0.2f, 0.2f, 1.0f); }
+                            else if (st == FILTERED) { state_str = "filtered"; color = ImVec4(0.9f, 0.6f, 0.1f, 1.0f); }
+                            else if (st == (OPEN | FILTERED)) { state_str = "open|filtered"; color = ImVec4(0.9f, 0.5f, 0.3f, 1.0f); }
+                            else if (st == UNFILTERED) { state_str = "unfiltered"; color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f); }
+
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%d/tcp", port);
+
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextColored(color, "%s", state_str.c_str());
+                        }
+                        ImGui::EndTable();
+                    }
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
+        }
+    }
     ImGui::End();
 }

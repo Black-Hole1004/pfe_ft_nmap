@@ -8,7 +8,19 @@ School project scaffold inspired by ft_nmap.
   - parser/, send/, receive/, utils/
 
 ## Build
-
+For CLI version, run :
 ```sh
 make
+```
+For GUI version, run :
+```sh
+make gui
+```
+To run CLI version : 
+```sh
+./pfe_ft_nmap
+```
+To run GUI version : 
+```sh
+./pfe_ft_nmap_gui
 ```

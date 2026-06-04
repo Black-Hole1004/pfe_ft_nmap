@@ -10,4 +10,5 @@ void RenderScannerUI();
 // thread-safe wrapper to add text to the log panel
 void LogToConsole(const std::string& message);
 
+void RenderScanResultsWindow();
 #endif
