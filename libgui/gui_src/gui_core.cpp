@@ -67,6 +67,8 @@ int init_gui_window() {
 
         // Call the scanning widgets dashboard layout
         RenderScannerUI();
+        // Call the results widget layout
+        RenderScanResultsWindow();
 
         // Rendering assembly pipeline
         ImGui::Render();
