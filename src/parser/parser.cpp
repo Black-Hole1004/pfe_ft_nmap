@@ -6,7 +6,7 @@
 #include <iostream>
 
 // constructor + init target to empty string
-Parser::Parser() : target(""), ports(std::vector<unsigned short>()) ,verbose(false)
+Parser::Parser() : target(""), ports(std::vector<unsigned short>()), verbose(false), thread_count(4)
 {
 }
 
@@ -51,6 +51,23 @@ void flag_parser(unsigned short *index,int argc, char *argv[], Parser &p) {
     }
     else if(curr == "-v") {
         p.verbose = !p.verbose; // toggle
+    }
+    else if (curr == "-t") {
+        if ((*index + 1) >= argc || argv[*index + 1][0] == '\0') {
+            std::cout << ">>Error: -t flag requires an arg." << std::endl;
+            exit(1);
+        }
+        if (!is_number(argv[*index + 1])) {
+            std::cout << ">>Error: -t requires a number." << std::endl;
+            exit(1);
+        }
+        int tc = std::stoi(argv[*index + 1]);
+        if (tc < 1 || tc > 250) {
+            std::cout << ">>Error: thread count must be between 1 and 250." << std::endl;
+            exit(1);
+        }
+        p.thread_count = tc;
+        (*index)++;
     }
     else if (curr == "-sA") { 
         p.scan_types.push_back("ACK");

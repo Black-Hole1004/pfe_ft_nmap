@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     }
 
     if (argc < 2) {
-        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...> -[sS|sF|sN|sX]" << std::endl;
+        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...> -[sS|sF|sN|sX|sA|sU] [-t <threads>]" << std::endl;
         return 1;
     }
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     std::cout << "Target IP : " << parser.target << std::endl;
 
     g_scan.options.family = AF_INET;
-    g_scan.options.thread_count = 4; // default thread count
+    g_scan.options.thread_count = parser.thread_count;
     g_scan.options.verbose = parser.verbose ? 1 : 0;
 
     // Resolve target
