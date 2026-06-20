@@ -110,81 +110,103 @@ void Scanner::run(const std::string& target_ip, const std::vector<unsigned short
 
 void Scanner::printSummaryMatrix(const std::vector<unsigned short>& ports)
 {
-    // Local lambda utility to extract active target ports safely
-    auto get_active_ports = [&](std::vector<unsigned short>& list) {
-        if (!ports.empty()) {
-            list = ports;
-        } else {
-            for (int p = 0; p <= USHRT_MAX; p++)
-                if (g_scan.options.port[p])
-                    list.push_back(p);
-        }
+    auto status_to_str = [](t_status st) -> std::string {
+        if (st == CLOSED) return "closed";
+        if (st == OPEN) return "open";
+        if (st == FILTERED) return "filtered";
+        if (st == static_cast<t_status>(OPEN | FILTERED)) return "open|filtered";
+        if (st == UNFILTERED) return "unfiltered";
+        return "unknown";
     };
 
+    // Extract active ports
     std::vector<unsigned short> active_ports;
-    get_active_ports(active_ports);
+    if (!ports.empty()) {
+        active_ports = ports;
+    } else {
+        for (int p = 0; p <= USHRT_MAX; p++)
+            if (g_scan.options.port[p])
+                active_ports.push_back(p);
+    }
 
     if (active_ports.empty()) return;
 
-    // Define fixed width spacing configurations
-    const int row_label_width = 15;
-    const int col_width = 15;
+    // Extract active techniques
+    std::vector<int> active_techniques;
+    for (int t = 0; t < TECHNIQUE_COUNT; t++)
+        if (g_scan.options.technique[t])
+            active_techniques.push_back(t);
 
-    for (t_IP *ip = g_scan.ip; ip; ip = ip->next) 
-    {
+    if (active_techniques.empty()) return;
+
+    const int padding = 2;
+
+    // Compute PORT column width
+    int port_col_width = 4; // "PORT"
+    for (unsigned short port : active_ports) {
+        std::string label = std::to_string(port) + "/tcp";
+        if (port_col_width < (int)label.length())
+            port_col_width = label.length();
+    }
+    port_col_width += padding;
+
+    // Compute technique column widths
+    std::vector<int> tech_col_widths(active_techniques.size(), 0);
+    for (size_t i = 0; i < active_techniques.size(); ++i) {
+        int t = active_techniques[i];
+        std::string tech_name = get_technique_name(static_cast<t_technique>(t));
+        tech_col_widths[i] = (int)tech_name.length() + padding;
+
+        for (t_IP *ip = g_scan.ip; ip; ip = ip->next) {
+            if (ip->is_down) continue;
+            for (unsigned short port : active_ports) {
+                int w = (int)status_to_str(ip->status[t][port]).length() + padding;
+                if (tech_col_widths[i] < w)
+                    tech_col_widths[i] = w;
+            }
+        }
+    }
+
+    // Print one matrix per target IP
+    for (t_IP *ip = g_scan.ip; ip; ip = ip->next) {
         if (ip->is_down) continue;
 
-        std::cout << "\n====================================================================\n";
-        std::cout << "                 CROSS-TECHNIQUE MATRIX FOR " << ip->name << "\n";
-        std::cout << "====================================================================\n\n";
+        std::cout << "\n==================================================\n";
+        std::cout << "  Cross-technique matrix for " << ip->name << "\n";
+        std::cout << "==================================================\n";
 
-        // 1. PRINT HEADER (Ports Columns)
-        std::cout << std::left << std::setw(row_label_width) << ""; 
+        // Header row
+        std::cout << std::left << std::setw(port_col_width) << "PORT";
+        for (size_t i = 0; i < active_techniques.size(); ++i) {
+            int t = active_techniques[i];
+            std::cout << std::left << std::setw(tech_col_widths[i])
+                      << get_technique_name(static_cast<t_technique>(t));
+        }
+        std::cout << "\n";
+
+        // Separator
+        std::cout << std::string(port_col_width, '-');
+        for (int w : tech_col_widths)
+            std::cout << std::string(w, '-');
+        std::cout << "\n";
+
+        // One row per port
         for (unsigned short port : active_ports) {
-            std::cout << std::left << std::setw(col_width) << ("Port " + std::to_string(port));
-        }
-        std::cout << "\n";
+            std::string port_label = std::to_string(port) + "/tcp";
+            std::cout << std::left << std::setw(port_col_width) << port_label;
 
-        // 2. PRINT TOP BORDER LINE
-        std::cout << std::left << std::setw(row_label_width) << "";
-        for (size_t i = 0; i < active_ports.size(); ++i) {
-            std::cout << std::left << std::setw(col_width) << "-------------";
-        }
-        std::cout << "\n";
-
-        // 3. PRINT ROWS (Techniques Loop)
-        for (int t = 0; t < TECHNIQUE_COUNT; t++) 
-        {
-            // Only print rows for techniques that were actually requested/run
-            if (!g_scan.options.technique[t]) continue; 
-
-            // Format row prefix label: e.g., "SYN (Index 1)"
-            std::string label = get_technique_name(static_cast<t_technique>(t)) + std::string(" (Index ") + std::to_string(t) + ")";
-            std::cout << std::left << std::setw(row_label_width) << label;
-
-            // Print status value for every port in this row
-            for (unsigned short port : active_ports) 
-            {
-                t_status st = ip->status[t][port];
-                std::string state_str;
-
-                if (st == CLOSED) state_str = "CLOSED";
-                else if (st == OPEN) state_str = "OPEN";
-                else if (st == FILTERED) state_str = "FILTERED";
-                else if (st == static_cast<t_status>(OPEN | FILTERED)) state_str = "OPEN|FILTERED";
-                else if (st == UNFILTERED) state_str = "UNFILTERED";
-                else state_str = "UNKNOWN";
-
-                std::cout << std::left << std::setw(col_width) << state_str;
+            for (size_t i = 0; i < active_techniques.size(); ++i) {
+                int t = active_techniques[i];
+                std::cout << std::left << std::setw(tech_col_widths[i])
+                          << status_to_str(ip->status[t][port]);
             }
             std::cout << "\n";
         }
 
-        // 4. PRINT BOTTOM BORDER LINE
-        std::cout << std::left << std::setw(row_label_width) << "";
-        for (size_t i = 0; i < active_ports.size(); ++i) {
-            std::cout << std::left << std::setw(col_width) << "-------------";
-        }
-        std::cout << "\n\n";
+        // Separator
+        std::cout << std::string(port_col_width, '-');
+        for (int w : tech_col_widths)
+            std::cout << std::string(w, '-');
+        std::cout << "\n";
     }
 }
