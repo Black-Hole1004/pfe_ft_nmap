@@ -20,6 +20,10 @@
 #define MAX_IPS 42
 #define TECHNIQUE_COUNT 6
 
+#define STATE_FILTERED 0
+#define STATE_OPEN     1
+#define STATE_CLOSED   2
+
 typedef struct
 {
     u_int32_t source_address;
@@ -123,5 +127,6 @@ typedef struct
 } t_scan;
 
 extern t_scan g_scan;
+extern u_int8_t g_port_results[65536];
 
 #endif
