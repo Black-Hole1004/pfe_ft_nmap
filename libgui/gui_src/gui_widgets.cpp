@@ -122,8 +122,19 @@ void RenderScannerUI() {
             if (g_scan.options.thread_count == 0)
                 g_scan.options.thread_count = 1;
 
+            // Resolve the target to an IP string for pcap device selection
+            std::string resolved_ip;
+            for (t_IP *ip = g_scan.ip; ip != NULL; ip = ip->next) {
+                char ip_str[INET6_ADDRSTRLEN] = {0};
+                inet_ntop(g_scan.options.family,
+                          g_scan.options.family == AF_INET ? (void*)&ip->addr.ipv4.sin_addr : (void*)&ip->addr.ipv6.sin6_addr,
+                          ip_str, sizeof(ip_str));
+                resolved_ip = ip_str;
+                break;
+            }
+
             // 4. Open Network Device Packet Capture Handle
-            std::string device = find_pcap_device(target_ip_buf);
+            std::string device = find_pcap_device(resolved_ip);
             if (device.empty()) {
                 LogToConsole("[-] Error: No suitable pcap device found.");
                 is_scanning = false;

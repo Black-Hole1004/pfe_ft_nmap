@@ -6,7 +6,7 @@
 #include <iostream>
 
 // constructor + init target to empty string
-Parser::Parser() : target(""), ports(std::vector<unsigned short>()), verbose(false), thread_count(4)
+Parser::Parser() : target(""), ports(std::vector<unsigned short>()), verbose(false), print_matrix(false), thread_count(4)
 {
 }
 
@@ -22,14 +22,19 @@ void Parser::parseArgs(int argc, char **argv)
                 exit(1);
             }
 
-            std::string cleanIP = sanitizeIP(argv[i+1]);
+            std::string arg = argv[i+1];
 
-            if(!isValidIP(cleanIP)) {
+            if (isValidIP(arg)) {
+                // IPv4 literal: normalize it
+                target = sanitizeIP(arg);
+            } else if (arg.find_first_not_of("0123456789.") == std::string::npos) {
+                // Looks like an IPv4 address but is malformed
                 std::cout << ">>Error: IP is invalid (IPV4 format: X.X.X.X, with X in 0-255)." << std::endl;
                 exit(1);
+            } else {
+                // Accept hostname or IPv6 literal as-is; DNS resolution happens later
+                target = arg;
             }
-            // checks passed = valid ip registered.
-            target = cleanIP;
             i++;
         } else if (curr[0] == '-' && curr[1] != '-') {
             flag_parser(&i, argc, argv, *this);
@@ -51,6 +56,9 @@ void flag_parser(unsigned short *index,int argc, char *argv[], Parser &p) {
     }
     else if(curr == "-v") {
         p.verbose = !p.verbose; // toggle
+    }
+    else if (curr == "-ctm") {
+        p.print_matrix = true;
     }
     else if (curr == "-t") {
         if ((*index + 1) >= argc || argv[*index + 1][0] == '\0') {

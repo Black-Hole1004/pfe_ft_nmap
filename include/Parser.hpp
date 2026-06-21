@@ -14,6 +14,7 @@ public:
     std::string target;
     std::vector<unsigned short> ports;
     bool verbose;
+    bool print_matrix;
     int thread_count;
     std::vector<std::string> scan_types;
 };

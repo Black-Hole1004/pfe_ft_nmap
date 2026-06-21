@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     }
 
     if (argc < 2) {
-        std::cout << "Usage: ./pfe_ft_nmap --ip <address-ipv4> -p <port1,port2,...> -[sS|sF|sN|sX|sA|sU] [-t <threads>]" << std::endl;
+        std::cout << "Usage: ./pfe_ft_nmap --ip <address|hostname> -p <port1,port2,...> -[sS|sF|sN|sX|sA|sU] [-t <threads>] [-ctm]" << std::endl;
         return 1;
     }
 
@@ -33,13 +33,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::cout << "Target IP : " << parser.target << std::endl;
+    std::cout << "Target : " << parser.target << std::endl;
 
     g_scan.options.family = AF_INET;
     g_scan.options.thread_count = parser.thread_count;
     g_scan.options.verbose = parser.verbose ? 1 : 0;
 
-    // Resolve target
+    // Resolve target (IPv4/IPv6 literal or hostname via DNS)
     t_IP target = resolve_target(parser.target);
     add_IP(target);
 
@@ -112,8 +112,19 @@ int main(int argc, char *argv[])
     if (g_scan.options.thread_count == 0)
         g_scan.options.thread_count = 1;
 
+    // Determine resolved IP string to choose the correct pcap device
+    std::string resolved_ip;
+    for (t_IP *ip = g_scan.ip; ip != NULL; ip = ip->next) {
+        char ip_str[INET6_ADDRSTRLEN] = {0};
+        inet_ntop(g_scan.options.family,
+                  g_scan.options.family == AF_INET ? (void*)&ip->addr.ipv4.sin_addr : (void*)&ip->addr.ipv6.sin6_addr,
+                  ip_str, sizeof(ip_str));
+        resolved_ip = ip_str;
+        break;
+    }
+
     // Find pcap device
-    std::string device = find_pcap_device(parser.target);
+    std::string device = find_pcap_device(resolved_ip);
     if (device.empty()) {
         std::cerr << "No suitable pcap device found" << std::endl;
         return 1;
@@ -152,7 +163,10 @@ int main(int argc, char *argv[])
     // Run scan
     Scanner scanner;
     scanner.run(parser.target, parser.ports);
-    scanner.printSummaryMatrix(parser.ports);
+
+    // Optionally print the cross-technique matrix
+    if (parser.print_matrix)
+        scanner.printSummaryMatrix(parser.ports);
 
     pcap_close(g_scan.handle);
     free_IPs();
