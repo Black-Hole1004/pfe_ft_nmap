@@ -4,7 +4,8 @@
 
 void init_send()
 {
-    std::cout << "Sending packets..." << std::endl;
+    if (g_scan.options.verbose)
+        std::cout << "Sending packets..." << std::endl;
     if (g_scan.options.thread_count > 1)
         thread_send();
     else {

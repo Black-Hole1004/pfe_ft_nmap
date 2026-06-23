@@ -1,4 +1,5 @@
 #include "functions.hpp"
+#include "packet_debug.hpp"  // TEMPORARY - REMOVE AFTER DEBUGGING
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/ip_icmp.h>
@@ -28,9 +29,17 @@ static void icmp_analyze(int technique, int port, struct icmphdr *icmp, t_IP *IP
 void packet_handler(unsigned char *arg, const struct pcap_pkthdr *pcap_header, const unsigned char *data)
 {
     (void)arg;
-    (void)pcap_header;
 
+    // TEMPORARY DEBUG - REMOVE AFTER DEBUGGING
+    static int received_packet_count = 0;
     int linkType = pcap_datalink(g_scan.handle);
+
+    if (received_packet_count < 5 && g_scan.options.verbose >= 2) {  // Print first 5 received packets only
+        print_incoming_packet(data, pcap_header->len, linkType);
+        received_packet_count++;
+    }
+
+    (void)pcap_header;
     int offset = 14; // ethernet
     if (linkType == DLT_LINUX_SLL)
         offset = 16;

@@ -1,4 +1,5 @@
 #include "functions.hpp"
+#include "packet_debug.hpp"  // TEMPORARY - REMOVE AFTER DEBUGGING
 #include <pthread.h>
 #include <iostream>
 #include <unistd.h>
@@ -6,6 +7,7 @@
 #include <cstring>
 #include <errno.h>
 #include <iomanip>
+#include <arpa/inet.h>
 
 static void dispatch(int amount, int *chunks, t_range chunk_range, bool *check)
 {
@@ -76,9 +78,21 @@ void *routine(void *arg)
                 }
                 calculate_checksum(protocol, &packet, packet_size, IP);
 
+                // TEMPORARY DEBUG - REMOVE AFTER DEBUGGING
+                static int packet_count = 0;
+                if (packet_count < 5 && g_scan.options.verbose >= 2) {  // Print first 5 packets only
+                    char dest_ip[INET6_ADDRSTRLEN];
+                    inet_ntop(g_scan.options.family,
+                             g_scan.options.family == AF_INET ? (void*)&IP->addr.ipv4.sin_addr : (void*)&IP->addr.ipv6.sin6_addr,
+                             dest_ip, sizeof(dest_ip));
+                    print_outgoing_packet(&packet, protocol, dest_ip, port, get_technique_name(static_cast<t_technique>(technique)));
+                    packet_count++;
+                }
+
                 if (sendto(sock, &packet, packet_size, 0, &IP->addr.base, IP->addrlen) == -1)
                     std::cerr << "sendto: " << strerror(errno) << std::endl;
-                usleep(1000);
+                // Small delay to avoid overwhelming the network (100μs = 0.1ms)
+                usleep(100);
             }
     }
 

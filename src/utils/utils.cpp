@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <pcap/pcap.h>
 #include <cstring>
+#include <vector>
 
 Utils::Utils() {}
 
@@ -166,6 +167,73 @@ std::string sanitizeIP(const std::string &IP)
     return cleanIP;
 }
 
+bool isValidCIDR(const std::string &cidr)
+{
+    size_t slash_pos = cidr.find('/');
+    if (slash_pos == std::string::npos)
+        return false;
+
+    std::string ip_part = cidr.substr(0, slash_pos);
+    std::string prefix_part = cidr.substr(slash_pos + 1);
+
+    if (!isValidIP(ip_part))
+        return false;
+
+    if (prefix_part.empty() || prefix_part.find_first_not_of("0123456789") != std::string::npos)
+        return false;
+
+    int prefix_len = std::stoi(prefix_part);
+    if (prefix_len < 0 || prefix_len > 32)
+        return false;
+
+    return true;
+}
+
+std::vector<std::string> expandCIDR(const std::string &cidr)
+{
+    std::vector<std::string> ips;
+
+    size_t slash_pos = cidr.find('/');
+    std::string ip_part = cidr.substr(0, slash_pos);
+    int prefix_len = std::stoi(cidr.substr(slash_pos + 1));
+
+    // Parse the base IP into 4 octets
+    std::stringstream ss(ip_part);
+    std::string segment;
+    std::vector<int> octets;
+    while (std::getline(ss, segment, '.')) {
+        octets.push_back(std::stoi(segment));
+    }
+
+    // Calculate network address and number of hosts
+    uint32_t base_ip = (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+    uint32_t mask = (0xFFFFFFFF << (32 - prefix_len)) & 0xFFFFFFFF;
+    uint32_t network = base_ip & mask;
+    uint32_t num_hosts = (1U << (32 - prefix_len));
+
+    // Limit expansion to reasonable size
+    if (num_hosts > 65536) {
+        std::cerr << ">>Warning: CIDR range too large (max 65536 hosts). Limiting to /16." << std::endl;
+        num_hosts = 65536;
+    }
+
+    // Generate all IPs in the range (including network and broadcast addresses)
+    // Modern networks and cloud environments often use all addresses
+    for (uint32_t i = 0; i < num_hosts; i++) {
+        uint32_t ip = network + i;
+
+        char ip_str[16];
+        std::snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
+                     (ip >> 24) & 0xFF,
+                     (ip >> 16) & 0xFF,
+                     (ip >> 8) & 0xFF,
+                     ip & 0xFF);
+        ips.push_back(std::string(ip_str));
+    }
+
+    return ips;
+}
+
 std::vector<unsigned short> split(const std::string &str, char del)
 {
     std::vector<unsigned short> result;
@@ -246,7 +314,8 @@ t_sockaddr get_interface()
         inet_ntop(g_scan.options.family,
                   g_scan.options.family == AF_INET ? (void*)&addr.ipv4.sin_addr : (void*)&addr.ipv6.sin6_addr,
                   ip, sizeof(ip));
-        std::cout << "Interface: " << tmp->ifa_name << "(" << ip << ")" << std::endl;
+        if (g_scan.options.verbose)
+            std::cout << "Interface: " << tmp->ifa_name << "(" << ip << ")" << std::endl;
     }
 
     freeifaddrs(ifaddr);

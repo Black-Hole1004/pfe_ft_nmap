@@ -6,7 +6,7 @@
 #include <iostream>
 
 // constructor + init target to empty string
-Parser::Parser() : target(""), ports(std::vector<unsigned short>()), verbose(false), print_matrix(false), thread_count(4)
+Parser::Parser() : target(""), ports(std::vector<unsigned short>()), verbose(0), print_matrix(false), thread_count(4)
 {
 }
 
@@ -24,12 +24,15 @@ void Parser::parseArgs(int argc, char **argv)
 
             std::string arg = argv[i+1];
 
-            if (isValidIP(arg)) {
+            if (isValidCIDR(arg)) {
+                // CIDR notation: store as-is for expansion later
+                target = arg;
+            } else if (isValidIP(arg)) {
                 // IPv4 literal: normalize it
                 target = sanitizeIP(arg);
-            } else if (arg.find_first_not_of("0123456789.") == std::string::npos) {
-                // Looks like an IPv4 address but is malformed
-                std::cout << ">>Error: IP is invalid (IPV4 format: X.X.X.X, with X in 0-255)." << std::endl;
+            } else if (arg.find_first_not_of("0123456789./") == std::string::npos) {
+                // Looks like an IPv4 address or CIDR but is malformed
+                std::cout << ">>Error: IP/CIDR is invalid (IPV4 format: X.X.X.X or X.X.X.X/Y, with X in 0-255, Y in 0-32)." << std::endl;
                 exit(1);
             } else {
                 // Accept hostname or IPv6 literal as-is; DNS resolution happens later
@@ -55,7 +58,7 @@ void flag_parser(unsigned short *index,int argc, char *argv[], Parser &p) {
         (*index )++;
     }
     else if(curr == "-v") {
-        p.verbose = !p.verbose; // toggle
+        p.verbose++;  // Increment verbose level for each -v flag
     }
     else if (curr == "-ctm") {
         p.print_matrix = true;

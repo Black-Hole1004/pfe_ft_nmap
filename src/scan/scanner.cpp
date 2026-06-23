@@ -40,7 +40,7 @@ void Scanner::run(const std::string& target_ip, const std::vector<unsigned short
             }
     }
 
-    std::cout << "\n--- Starting Scan ---" << std::endl;
+    std::cout << "--- Starting Scan ---" << std::endl;
 
     // Send all packets (blocking)
     Sender sender;
@@ -50,7 +50,8 @@ void Scanner::run(const std::string& target_ip, const std::vector<unsigned short
     Receiver receiver;
     receiver.receiveAll(target_ip);
 
-    std::cout << "[Scanner] Scan execution finalized." << std::endl;
+    if (g_scan.options.verbose)
+        std::cout << "[Scanner] Scan execution finalized." << std::endl;
 
     // Print results
     for (t_IP *ip = g_scan.ip; ip; ip = ip->next) {

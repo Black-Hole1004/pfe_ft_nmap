@@ -3,6 +3,7 @@
 #include "Receiver.hpp"
 #include "Sender.hpp"
 #include "scanner.hpp"
+#include "Utils.hpp"
 
 #include <unistd.h>
 #include <signal.h>
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     }
 
     if (argc < 2) {
-        std::cout << "Usage: ./pfe_ft_nmap --ip <address|hostname> -p <port1,port2,...> -[sS|sF|sN|sX|sA|sU] [-t <threads>] [-ctm]" << std::endl;
+        std::cout << "Usage: ./pfe_ft_nmap --ip <address|hostname|CIDR> -p <port1,port2,...> -[sS|sF|sN|sX|sA|sU] [-t <threads>] [-ctm]" << std::endl;
         return 1;
     }
 
@@ -33,15 +34,27 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::cout << "Target : " << parser.target << std::endl;
-
     g_scan.options.family = AF_INET;
     g_scan.options.thread_count = parser.thread_count;
-    g_scan.options.verbose = parser.verbose ? 1 : 0;
+    g_scan.options.verbose = parser.verbose;
 
-    // Resolve target (IPv4/IPv6 literal or hostname via DNS)
-    t_IP target = resolve_target(parser.target);
-    add_IP(target);
+    if (g_scan.options.verbose)
+        std::cout << "Target : " << parser.target << std::endl;
+
+    // Check if target is CIDR notation
+    if (isValidCIDR(parser.target)) {
+        std::vector<std::string> ips = expandCIDR(parser.target);
+        if (g_scan.options.verbose)
+            std::cout << "Expanding CIDR to " << ips.size() << " hosts..." << std::endl;
+        for (const std::string& ip_str : ips) {
+            t_IP target = resolve_target(ip_str);
+            add_IP(target);
+        }
+    } else {
+        // Resolve target (IPv4/IPv6 literal or hostname via DNS)
+        t_IP target = resolve_target(parser.target);
+        add_IP(target);
+    }
 
     // Get interface
     g_scan.interface = get_interface();
@@ -150,7 +163,8 @@ int main(int argc, char *argv[])
         if (ip->next)
             std::strcat(filter, " or ");
     }
-    std::cout << "Filter: " << filter << std::endl;
+    if (g_scan.options.verbose)
+        std::cout << "Filter: " << filter << std::endl;
 
     struct bpf_program fp = {0};
     if (pcap_compile(g_scan.handle, &fp, filter, 1, PCAP_NETMASK_UNKNOWN) == -1 ||
